@@ -10,8 +10,6 @@ const pool=mysql2.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     connectionLimit: 10,
-    queueLimit: 0,
-    waitForConnections: true
 });
 
 const checkConnection = async () => {

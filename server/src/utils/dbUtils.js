@@ -1,16 +1,18 @@
 import { pool } from '../config/db.js';
 
-const systemuserTableQuery=`CREATE TABLE SystemUser (
+const systemuserTableQuery=`CREATE TABLE IF NOT EXISTS SystemUser (
     user_id VARCHAR(255) PRIMARY KEY,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     user_name VARCHAR(100) UNIQUE,
     password VARCHAR(255),
-    role_name VARCHAR(50),
-    email VARCHAR(255) UNIQUE
+    role_name ENUM('super-admin', 'admin', 'tour-operator'),
+    email VARCHAR(255) UNIQUE,
+    otp VARCHAR(4),
+    otp_created_at TIMESTAMP NULL
 );`
 
-const adminTableQuery=`CREATE TABLE Admin (
+const adminTableQuery=`CREATE TABLE IF NOT EXISTS Admin (
     admin_id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255),
     FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
