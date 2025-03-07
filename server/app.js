@@ -1,4 +1,5 @@
 import express from 'express';
+import bodyParser from 'body-parser';
 import cors from 'cors';
 import { checkConnection } from './src/config/db.js';
 import createAllTable  from './src/utils/dbUtils.js';
@@ -7,14 +8,14 @@ import userRoutes from './src/routes/userRoutes.js';
 
 
 const app = express();
-
 app.use(cors({
     origin: ["http://localhost:5173"],
-    methods: ['GET','POST','PUT',"DELETE"],
+    methods: ['GET','POST','PUT','PATCH','DELETE'],
     credentials: true
 })) 
-app.use(express.json()); // Middleware to parse JSON data
 
+app.use(express.json()); // Middleware to parse JSON data
+app.use(bodyParser.json());
 app.use('/api/auth', authRoutes); 
 app.use('/api/users', userRoutes); 
 

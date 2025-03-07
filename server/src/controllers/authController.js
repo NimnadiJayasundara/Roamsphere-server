@@ -29,10 +29,6 @@ const createProfile = async (req, res) => {
     // Generate a random temporary password
     const temporaryPassword = Math.random().toString(36).slice(-8);
 
-    // Hash the temporary password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(temporaryPassword, saltRounds);
-
     // Define the user query
     const userQuery = `
       INSERT INTO SystemUser (user_id, first_name, last_name, user_name, password, role_name, email)
@@ -40,7 +36,7 @@ const createProfile = async (req, res) => {
     `;
 
     // Insert user into the database
-    await pool.query(userQuery, [firstName, lastName, userName, hashedPassword, role, email]);
+    await pool.query(userQuery, [firstName, lastName, userName, temporaryPassword, role, email]);
 
     // Send invitation email with the temporary password
     await sendInvitationEmail(email, `${firstName} ${lastName}, Your temporary password is: ${temporaryPassword}`);
@@ -98,7 +94,7 @@ const login = async (req, res) => {
 
   // Validate input
   if (!fullName || !email) {
-    return res.status(400).json({ message: 'Full namuuue and email are required.' });
+    return res.status(400).json({ message: 'Full name and email are required.' });
   }
 
   const [firstName, lastName] = fullName.split(' ');
@@ -169,4 +165,35 @@ const verifyOTP = async (req, res) => {
   }
 };
 
-export { verifyOTP, signup, createProfile, login };
+// Update password function
+const updatePassword = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and new password are required.' });
+  }
+
+  try {
+
+    // Update the password in the database
+    const updatePasswordQuery = `
+      UPDATE SystemUser 
+      SET password = ? 
+      WHERE email = ?
+    `;
+
+    const [result] = await pool.query(updatePasswordQuery, [password, email]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Failed to update password:', error);
+    res.status(500).json({ message: 'Failed to update password.', error: error.message });
+  }
+};
+
+
+export { verifyOTP, signup, createProfile, login, updatePassword };
