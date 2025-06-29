@@ -6,7 +6,7 @@ import { sendInvitationEmail } from '../config/nodemailer.js';
 // Helper function to check if a user already exists by email or username
 const checkUserExistence = async (email, userName) => {
   const [result] = await pool.query(`SELECT * FROM SystemUser WHERE email = ? OR user_name = ?`, [email, userName]);
-  return result.length > 0; // If result is not empty, the user already exists
+  return result.length > 0; 
 };
 
 // Profile creation
@@ -14,13 +14,13 @@ const createProfile = async (req, res) => {
   const { firstName, lastName, email, role } = req.body;
 
   // Validate role
-  if (!['super-admin', 'admin', 'tour-operator'].includes(role)) {
+  if (!['super-admin', 'admin', 'tour-operator', 'driver'].includes(role)) {
     return res.status(400).json({ message: 'Invalid role specified.' });
   }
 
   try {
     // Check for existing user
-    const userName = email.split('@')[0]; // Generate username from email prefix
+    const userName = email.split('@')[0]; 
     const userExists = await checkUserExistence(email, userName);
     if (userExists) {
       return res.status(400).json({ message: 'User with this email or username already exists.' });
@@ -90,25 +90,32 @@ const signup = async (req, res) => {
 
 // Login function with JWT authentication
 const login = async (req, res) => {
-  const { fullName, email } = req.body;
+  const { fullName, email, password } = req.body;
 
   // Validate input
-  if (!fullName || !email) {
-    return res.status(400).json({ message: 'Full name and email are required.' });
+  if (!fullName || !email || !password) {
+    return res.status(400).json({ message: 'Full name, email and password are required.' });
   }
 
   const [firstName, lastName] = fullName.split(' ');
 
   try {
-    // Step 1: Check if the user exists
-    const [user] = await pool.query(`SELECT * FROM SystemUser WHERE first_name = ? AND last_name = ? AND email = ?`, [firstName, lastName, email]);
+    // Check if the user exists
+    const [user] = await pool.query(
+      `SELECT * FROM SystemUser WHERE first_name = ? AND last_name = ? AND email = ? AND password = ?`, 
+      [firstName, lastName, email, password]
+    );
     if (user.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Step 2: Generate a JWT token
+    // Generate a JWT token
     const token = jwt.sign(
-      { id: user[0].user_id, role: user[0].role_name },
+      {
+        id: user[0].user_id,
+        role: user[0].role_name,
+        email: user[0].email 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );

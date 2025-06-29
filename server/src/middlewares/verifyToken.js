@@ -1,18 +1,43 @@
-// middleware to verify JWT token
-
 import jwt from 'jsonwebtoken';
+import { pool } from '../config/db.js';
 
-export const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).send({ message: 'Access denied. No token provided.' });
-    }
+export async function Auth(req, res, next) {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(400).send({ message: 'Invalid token' });
-    }
-};
+    req.data = decodedToken;
+    console.log("decodedToken", decodedToken);
+
+    next();
+  } catch (error) {
+    res.status(401).json({ error: "Authentication Failed!" });
+  }
+}
+
+export async function IsSuperAdmin(req, res, next) {
+  const { id } = req.data;
+  const [rows] = await pool.query('SELECT role_name FROM SystemUser WHERE user_id = ?', [id]);
+  if (!rows.length || rows[0].role_name !== "super-admin") {
+    return res.status(403).json({ msg: "You do not have permission to access this function" });
+  }
+  next();
+}
+
+export async function IsAdmin(req, res, next) {
+  const { id } = req.data;
+  const [rows] = await pool.query('SELECT role_name FROM SystemUser WHERE user_id = ?', [id]);
+  if (!rows.length || rows[0].role_name !== "admin") {
+    return res.status(403).json({ msg: "You do not have permission to access this function" });
+  }
+  next();
+}
+
+export async function IsTouroperator(req, res, next) {
+  const { id } = req.data;
+  const [rows] = await pool.query('SELECT role_name FROM SystemUser WHERE user_id = ?', [id]);
+  if (!rows.length || rows[0].role_name !== "tour-operator") {
+    return res.status(403).json({ msg: "You do not have permission to access this function" });
+  }
+  next();
+}

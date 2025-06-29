@@ -6,10 +6,10 @@ dotenv.config();
 
 // Create the transporter using Gmail's SMTP settings
 const transporter = nodemailer.createTransport({
-  service: 'gmail',  // Use Gmail's service
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS, // app password (for 2FA)
+    pass: process.env.EMAIL_PASS, 
   },
   tls: {
     rejectUnauthorized: false,  // This line is to avoid SSL certificate issues
@@ -22,7 +22,7 @@ export const sendInvitationEmail = async (email, tempPassword) => {
     from: process.env.EMAIL_USER,  // Sender email address
     to: email,                     
     subject: 'Welcome to RoamSphere', 
-    text: `You have been invited to join RoamSphere. Use this temporary password to login: ${tempPassword}.\nPlease change your password after your first login.`, // Email body text
+    text: `You have been invited to join RoamSphere. Use this temporary password to login: ${tempPassword}.\nPlease change your password after your first login.`, 
   };
 
   try {
