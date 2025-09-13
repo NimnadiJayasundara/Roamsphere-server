@@ -116,7 +116,6 @@ export async function IsTouroperator(req, res, next) {
   }
 }
 
-// Additional middleware for driver role
 export async function IsDriver(req, res, next) {
   try {
     const { id } = req.data;
@@ -142,30 +141,27 @@ export async function IsDriver(req, res, next) {
   }
 }
 
-// Generic role checker
-export function hasRole(allowedRoles = []) {
-  return async (req, res, next) => {
-    try {
-      const { id } = req.data;
-      const [rows] = await pool.query('SELECT role_name FROM SystemUser WHERE user_id = ?', [id]);
-      
-      if (!rows.length) {
-        return res.status(404).json({ msg: "User not found" });
-      }
-      
-      const userRole = rows[0].role_name;
-      if (!allowedRoles.includes(userRole)) {
-        return res.status(403).json({ 
-          msg: "Access denied. Insufficient privileges.",
-          required: allowedRoles,
-          current: userRole
-        });
-      }
-      
-      next();
-    } catch (error) {
-      console.error("Role check error:", error);
-      return res.status(500).json({ error: "Internal server error" });
+export async function IsAdminOrTourOperator(req, res, next) {
+  try {
+    const { id } = req.data;
+    const [rows] = await pool.query('SELECT role_name FROM SystemUser WHERE user_id = ?', [id]);
+    
+    if (!rows.length) {
+      return res.status(404).json({ msg: "User not found" });
     }
-  };
+    
+    const userRole = rows[0].role_name;
+    if (userRole !== "admin" && userRole !== "tour-operator" && userRole !== "super-admin") {
+      return res.status(403).json({ 
+        msg: "Access denied. Admin or Tour Operator privileges required.",
+        required: ["admin", "tour-operator", "super-admin"],
+        current: userRole
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Admin or Tour Operator check error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
