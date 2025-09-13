@@ -35,6 +35,28 @@ CREATE TABLE IF NOT EXISTS Driver (
     FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
 );`;
 
+const vehicleTableQuery = `
+CREATE TABLE IF NOT EXISTS Vehicle (
+    vehicle_id VARCHAR(255) PRIMARY KEY,
+    vehicle_type VARCHAR(100),
+    model VARCHAR(100),
+    year INT,
+    seating_capacity INT,
+    color VARCHAR(50),
+    ownership VARCHAR(100),
+    registration_province VARCHAR(100),
+    license_plate VARCHAR(50) UNIQUE,
+    chassis_no VARCHAR(100) UNIQUE,
+    registration_date DATE,
+    expiry_date DATE,
+    insurance TEXT,
+    category ENUM('Luxury', 'Safari', 'Tour', 'Adventure', 'Casual'),
+    availability ENUM('Available', 'Unavailable', 'Maintenance', 'Booked'),
+    image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES Driver(driver_id)
+);`;
+
 const createTable = async (tableName,query) => {
     try {
         await pool.query(query);
@@ -50,6 +72,7 @@ const createAllTable = async () => {
     await createTable('SystemUser',systemuserTableQuery);
     await createTable('Admin',adminTableQuery);	
     await createTable('Driver',driverTableQuery);
+    await createTable('Vehicle', vehicleTableQuery);
     console.log('All tables created sucessfully');
 } catch (error) {
     throw error;
