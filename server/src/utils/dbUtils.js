@@ -129,6 +129,69 @@ CREATE TABLE IF NOT EXISTS DriverStatistics (
     FOREIGN KEY (driver_id) REFERENCES Driver(driver_id)
 );`;
 
+// Enhanced Trip Management Tables
+const tripLocationTableQuery = `
+CREATE TABLE IF NOT EXISTS TripLocation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id VARCHAR(255) NOT NULL,
+    origin_latitude DECIMAL(10, 8),
+    origin_longitude DECIMAL(11, 8),
+    destination_latitude DECIMAL(10, 8),
+    destination_longitude DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id) ON DELETE CASCADE
+);`;
+
+const tripAssignmentTableQuery = `
+CREATE TABLE IF NOT EXISTS TripAssignment (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id VARCHAR(255) NOT NULL,
+    driver_id VARCHAR(255) NOT NULL,
+    vehicle_id VARCHAR(255) NOT NULL,
+    estimated_cost DECIMAL(10, 2),
+    estimated_duration INT,
+    notes TEXT,
+    assigned_by VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES Driver(driver_id) ON DELETE CASCADE,
+    FOREIGN KEY (vehicle_id) REFERENCES Vehicle(vehicle_id) ON DELETE CASCADE
+);`;
+
+const tripTrackingTableQuery = `
+CREATE TABLE IF NOT EXISTS TripTracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trip_id VARCHAR(255) NOT NULL,
+    driver_id VARCHAR(255) NOT NULL,
+    status ENUM('started', 'location_update', 'completed', 'cancelled') NOT NULL,
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    heading DECIMAL(5, 2),
+    speed DECIMAL(5, 2),
+    accuracy DECIMAL(5, 2),
+    address TEXT,
+    actual_cost DECIMAL(10, 2),
+    notes TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES Driver(driver_id) ON DELETE CASCADE
+);`;
+
+const vehicleMaintenanceTableQuery = `
+CREATE TABLE IF NOT EXISTS VehicleMaintenance (
+    maintenance_id VARCHAR(255) PRIMARY KEY,
+    vehicle_id VARCHAR(255) NOT NULL,
+    maintenance_type ENUM('routine', 'repair', 'inspection', 'emergency') NOT NULL,
+    description TEXT NOT NULL,
+    cost DECIMAL(10, 2),
+    maintenance_date DATE NOT NULL,
+    next_maintenance_date DATE,
+    service_provider VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vehicle_id) REFERENCES Vehicle(vehicle_id) ON DELETE CASCADE
+);`;
+
 const createTable = async (tableName,query) => {
     try {
         await pool.query(query);
@@ -139,8 +202,117 @@ const createTable = async (tableName,query) => {
     }
 }
 
+const addEnhancedColumns = async () => {
+    try {
+        // Enhanced Trip table columns
+        const tripEnhancements = [
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS origin_latitude DECIMAL(10, 8)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS origin_longitude DECIMAL(11, 8)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS destination_latitude DECIMAL(10, 8)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS destination_longitude DECIMAL(11, 8)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS actual_cost DECIMAL(10, 2)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS actual_duration INT',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS start_time TIMESTAMP NULL',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS end_time TIMESTAMP NULL',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS trip_rating INT CHECK (trip_rating >= 1 AND trip_rating <= 5)',
+            'ALTER TABLE Trip ADD COLUMN IF NOT EXISTS trip_review TEXT'
+        ];
+
+        // Enhanced Driver table columns
+        const driverEnhancements = [
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS current_latitude DECIMAL(10, 8)',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS current_longitude DECIMAL(11, 8)',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS current_heading DECIMAL(5, 2)',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS current_speed DECIMAL(5, 2)',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS last_location_update TIMESTAMP NULL',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS working_hours JSON',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS max_distance INT',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS preferred_trip_types JSON DEFAULT "[]"',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE',
+            'ALTER TABLE Driver ADD COLUMN IF NOT EXISTS availability_status ENUM("available", "assigned", "in-trip", "offline", "maintenance") DEFAULT "offline"'
+        ];
+
+        // Enhanced Vehicle table columns
+        const vehicleEnhancements = [
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS make VARCHAR(100)',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS year YEAR',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS fuel_type ENUM("petrol", "diesel", "hybrid", "electric")',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS transmission ENUM("manual", "automatic", "semi-automatic")',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS mileage INT',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS insurance_expiry DATE',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS registration_expiry DATE',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS features JSON DEFAULT "[]"',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS maintenance_notes TEXT',
+            'ALTER TABLE Vehicle ADD COLUMN IF NOT EXISTS availability_status ENUM("available", "assigned", "in-use", "maintenance", "unavailable") DEFAULT "available"'
+        ];
+
+        // Enhanced Customer table columns
+        const customerEnhancements = [
+            'ALTER TABLE Customer ADD COLUMN IF NOT EXISTS preferences JSON DEFAULT "{}"',
+            'ALTER TABLE Customer ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE'
+        ];
+
+        // Execute all enhancements
+        const allEnhancements = [
+            ...tripEnhancements,
+            ...driverEnhancements,
+            ...vehicleEnhancements,
+            ...customerEnhancements
+        ];
+
+        for (const query of allEnhancements) {
+            try {
+                await pool.query(query);
+            } catch (error) {
+                // Ignore errors for columns that already exist
+                if (!error.message.includes('Duplicate column name')) {
+                    // console.warn(`Warning: ${error.message}`);
+                }
+            }
+        }
+
+        console.log('Enhanced columns added successfully');
+    } catch (error) {
+        console.error('Error adding enhanced columns:', error.message);
+        throw error;
+    }
+}
+
+const createIndexes = async () => {
+    try {
+        const indexes = [
+            'CREATE INDEX IF NOT EXISTS idx_trip_status ON Trip(status)',
+            'CREATE INDEX IF NOT EXISTS idx_trip_customer ON Trip(customer_id)',
+            'CREATE INDEX IF NOT EXISTS idx_trip_driver ON Trip(assigned_driver_id)',
+            'CREATE INDEX IF NOT EXISTS idx_trip_vehicle ON Trip(assigned_vehicle_id)',
+            'CREATE INDEX IF NOT EXISTS idx_trip_date ON Trip(preferred_date)',
+            'CREATE INDEX IF NOT EXISTS idx_driver_availability ON Driver(availability_status)',
+            'CREATE INDEX IF NOT EXISTS idx_driver_online ON Driver(is_online)',
+            'CREATE INDEX IF NOT EXISTS idx_driver_location ON Driver(current_latitude, current_longitude)',
+            'CREATE INDEX IF NOT EXISTS idx_vehicle_availability ON Vehicle(availability_status)',
+            'CREATE INDEX IF NOT EXISTS idx_vehicle_type ON Vehicle(vehicle_type)',
+            'CREATE INDEX IF NOT EXISTS idx_tracking_trip ON TripTracking(trip_id)',
+            'CREATE INDEX IF NOT EXISTS idx_tracking_timestamp ON TripTracking(timestamp)'
+        ];
+
+        for (const indexQuery of indexes) {
+            try {
+                await pool.query(indexQuery);
+            } catch (error) {
+                // console.warn(`Warning creating index: ${error.message}`);
+            }
+        }
+
+        console.log('Indexes created successfully');
+    } catch (error) {
+        console.error('Error creating indexes:', error.message);
+        throw error;
+    }
+}
+
 const createAllTable = async () => {
     try{
+    // Core tables
     await createTable('SystemUser',systemuserTableQuery);
     await createTable('Admin',adminTableQuery);	
     await createTable('Driver',driverTableQuery);
@@ -148,7 +320,20 @@ const createAllTable = async () => {
     await createTable('Customer', customerTableQuery);
     await createTable('Trip', tripTableQuery);
     await createTable('DriverStatistics', driverStatisticsQuery);
-    console.log('All tables created sucessfully');
+    
+    // Enhanced trip management tables
+    await createTable('TripLocation', tripLocationTableQuery);
+    await createTable('TripAssignment', tripAssignmentTableQuery);
+    await createTable('TripTracking', tripTrackingTableQuery);
+    await createTable('VehicleMaintenance', vehicleMaintenanceTableQuery);
+    
+    // Add enhanced columns to existing tables
+    await addEnhancedColumns();
+    
+    // Create indexes for better performance
+    await createIndexes();
+    
+    console.log('All tables and enhancements created successfully');
 } catch (error) {
     throw error;
 }
