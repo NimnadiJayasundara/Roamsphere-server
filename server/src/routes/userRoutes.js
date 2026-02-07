@@ -42,7 +42,17 @@ import {
     getTripStatistics,
     getAllTripRequests,
     assignTripToDriver,
-    updateTripStatus
+    updateTripStatus,
+    createTripRequestEnhanced,
+    getTripDetails,
+    getAllTripRequestsEnhanced,
+    assignTripToDriverEnhanced,
+    getDriverTrips,
+    startTrip,
+    updateTripLocation,
+    completeTrip,
+    trackTrip,
+    getAssignmentOptions
 } from '../controllers/tripController.js';
 import { 
     Auth, 
@@ -97,6 +107,23 @@ router.get('/trip/statistics', Auth, getTripStatistics);
 router.get('/trip/all', Auth, IsAdminOrTourOperator, getAllTripRequests);
 router.patch('/trip/:tripId/assign', Auth, IsAdminOrTourOperator, assignTripToDriver);
 router.patch('/trip/:tripId/status', Auth, IsAdminOrTourOperator, updateTripStatus);
+
+// Enhanced Trip Management Routes
+// Customer enhanced trip management
+router.post('/trip/request-enhanced', Auth, createTripRequestEnhanced);
+router.get('/trip/details/:tripId', Auth, getTripDetails);
+router.get('/trip/track/:tripId', Auth, trackTrip);
+
+// Tour Operator enhanced trip management
+router.get('/trip/all-enhanced', Auth, IsAdminOrTourOperator, getAllTripRequestsEnhanced);
+router.patch('/trip/:tripId/assign-enhanced', Auth, IsAdminOrTourOperator, assignTripToDriverEnhanced);
+router.get('/trip/:tripId/assignment-options', Auth, IsAdminOrTourOperator, getAssignmentOptions);
+
+// Driver trip management
+router.get('/driver/trips', Auth, getDriverTrips);
+router.post('/driver/trips/:tripId/start', Auth, startTrip);
+router.post('/driver/trips/:tripId/location', Auth, updateTripLocation);
+router.post('/driver/trips/:tripId/complete', Auth, completeTrip);
 
 // Driver status and location
 router.get('/driver/status', Auth, getDriverStatus);
