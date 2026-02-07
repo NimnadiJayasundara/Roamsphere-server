@@ -15,7 +15,7 @@ const systemuserTableQuery=`CREATE TABLE IF NOT EXISTS SystemUser (
 const adminTableQuery=`CREATE TABLE IF NOT EXISTS Admin (
     admin_id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255),
-    FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
+    CONSTRAINT fk_admin_user FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
 );`
 
 const driverTableQuery = `
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS Driver (
     last_location_update TIMESTAMP NULL,
     status_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
+    CONSTRAINT fk_driver_user FOREIGN KEY (user_id) REFERENCES SystemUser(user_id)
 );`;
 
 const vehicleTableQuery = `
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS Vehicle (
     availability ENUM('Available', 'Unavailable', 'Maintenance', 'Booked'),
     image_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (driver_id) REFERENCES Driver(driver_id)
+    CONSTRAINT fk_vehicle_driver FOREIGN KEY (driver_id) REFERENCES Driver(driver_id)
 );`;
 
 const customerTableQuery = `
@@ -310,6 +310,23 @@ const createIndexes = async () => {
     }
 }
 
+const paymentIntentsTableQuery = `
+CREATE TABLE IF NOT EXISTS PaymentIntents (
+    payment_id VARCHAR(255) PRIMARY KEY,
+    customer_id VARCHAR(255),
+    trip_id VARCHAR(255) NULL,
+    trip_data JSON,
+    amount DECIMAL(10, 2),
+    currency VARCHAR(3) DEFAULT 'LKR',
+    payment_method VARCHAR(50),
+    payment_details JSON,
+    status ENUM('pending', 'completed', 'failed', 'cancelled') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
+);`;
+
 const createAllTable = async () => {
     try{
     // Core tables
@@ -326,6 +343,9 @@ const createAllTable = async () => {
     await createTable('TripAssignment', tripAssignmentTableQuery);
     await createTable('TripTracking', tripTrackingTableQuery);
     await createTable('VehicleMaintenance', vehicleMaintenanceTableQuery);
+    
+    // Payment tables
+    await createTable('PaymentIntents', paymentIntentsTableQuery);
     
     // Add enhanced columns to existing tables
     await addEnhancedColumns();
