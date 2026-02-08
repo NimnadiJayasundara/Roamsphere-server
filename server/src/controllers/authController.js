@@ -358,7 +358,7 @@ export const getAllDriversDetailed = async (req, res) => {
 
     query += ' ORDER BY su.first_name, su.last_name';
     query += ' LIMIT ? OFFSET ?';
-    queryParams.push(parseInt(limit), parseInt(offset));
+    queryParams.push(Number.parseInt(limit), Number.parseInt(offset));
 
     const [drivers] = await pool.query(query, queryParams);
 

@@ -6,7 +6,7 @@ const systemuserTableQuery=`CREATE TABLE IF NOT EXISTS SystemUser (
     last_name VARCHAR(100),
     user_name VARCHAR(100) UNIQUE,
     password VARCHAR(255),
-    role_name ENUM('super-admin', 'admin', 'tour-operator', 'driver'),
+    role_name ENUM('super-admin', 'admin', 'tour-operator', 'driver', 'customer') NOT NULL,
     email VARCHAR(255) UNIQUE,
     otp VARCHAR(4),
     otp_created_at TIMESTAMP NULL
