@@ -10,7 +10,7 @@ import paymentRoutes from './src/routes/paymentRoutes.js';
 
 const app = express();
 app.use(cors({
-    origin: ["https://roamsphere.vercel.app"],  //["http://localhost:5173"],
+    origin: ["https://roamspheretestdep.vercel.app", "http://localhost:5173"],
     methods: ['GET','POST','PUT','PATCH','DELETE'],
     credentials: true
 })) 
